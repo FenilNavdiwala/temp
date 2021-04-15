@@ -7,54 +7,55 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from pymongo import MongoClient
 from bson import ObjectId
-from nltk_utils import bag_of_words, tokenize, stem
+from nltk_utils import bag_of_words, tokenize, stem, syn
 from model import NeuralNet
 
 
-# Database Url Nad Password
+# Database Url Nd Password
 client = MongoClient(
     "mongodb+srv://admin:admin123@cluster1.ycoy8.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
 db = client["myFirstDatabase"]
-print("DATABASE:-",db,"\n")
-# cahtbots is collection Name
 collection = db["chatbots"]
-print("COOLECTION:-",collection,"\n")
-post_count = collection.count_documents({})
-print("COUNT:-",post_count,"\n")
-# print(post_count)
 
 y = collection.find({"_id": ObjectId("6051b174e1801a35d1336993")})
 a = y.next()
-
-
-# with open('intents.json', 'r') as f:
-#     intents = json.load(f)
 
 all_words = []
 tags = []
 xy = []  # hold both our patterens and thrren the text
 # loop through each sentence in our intents patterns
-for intent in intents['intents']:
-    tag = intent['tag']
-    # add to tag list
-    tags.append(tag)
-    for pattern in intent['patterns']:
+K = a['intents']
+
+A = []  # Tag
+TP = []  # trainingPhrase
+R = []  # response
+for i in range(len(K)):
+    A.append(K[i]['intentName'])
+    TP.append(K[i]['trainingPhrase'])
+    R. append(K[i]['response'])
+
+# w = []
+index = 0
+for i in TP:
+    for word in i:
         # tokenize each word in the sentence
-        w = tokenize(pattern)
+        w = tokenize(word)
+        print(w,'======')
         # add to our words list
         all_words.extend(w)
-        # add to xy pair
-        xy.append((w, tag))
+    # add to xy pair
+    xy.append((w, A[index]))
+    index = index+1
 
 # stem and lower each word
 ignore_words = ['?', '.', '!']
 all_words = [stem(w) for w in all_words if w not in ignore_words]
 # remove duplicates elements and sort
 all_words = sorted(set(all_words))
-tags = sorted(set(tags))
+tags = sorted(set(A))
 
 print(len(xy), "patterns")
-print(len(tags), "tags:", tags)
+print(len(A), "tags:", tags)
 print(len(all_words), "unique stemmed words:", all_words)
 
 # create training data
@@ -65,7 +66,7 @@ for (pattern_sentence, tag) in xy:
     bag = bag_of_words(pattern_sentence, all_words)
     X_train.append(bag)
     # y: PyTorch CrossEntropyLoss needs only class labels, not one-hot
-    label = tags.index(tag)
+    label = tag.index(tag)
     y_train.append(label)
 
 X_train = np.array(X_train)
